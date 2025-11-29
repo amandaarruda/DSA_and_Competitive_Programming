@@ -270,7 +270,72 @@ namespace dplib {
 
 }
 ```
+```cpp
+/*8<
+  @Title:
 
+    Binary Knapsack (bottom up)
+
+  @Description:
+
+    Given the points each element have, and it
+    repespective cost, computes the maximum points
+we can get if we can ignore/choose an element, in
+such way that the sum of costs don't exceed the
+maximum cost allowed.
+
+  @Time:
+
+    $O(N*W)$
+
+  @Space:
+
+    $O(N*W)$
+
+  @Warning:
+
+    The vectors $VS$ and $WS$ starts at one,
+    so it need an empty value at index 0.
+>8*/
+
+const int MAXN(1'000), MAXCOST(1'000 * 20);
+ll dp[MAXN + 1][MAXCOST + 1];
+bool ps[MAXN + 1][MAXCOST + 1];
+pair<ll, vi> knapsack(const vll &points, const vi &costs, int maxCost) {
+    int n = len(points) - 1;  // ELEMENTS START AT INDEX 1 !
+
+    for (int m = 0; m <= maxCost; m++) {
+        dp[0][m] = 0;
+    }
+
+    for (int i = 1; i <= n; i++) {
+        dp[i][0] = dp[i - 1][0] + (costs[i] == 0) * points[i];
+        ps[i][0] = costs[i] == 0;
+    }
+
+    for (int i = 1; i <= n; i++) {
+        for (int m = 1; m <= maxCost; m++) {
+            dp[i][m] = dp[i - 1][m], ps[i][m] = 0;
+            int w = costs[i];
+            ll v = points[i];
+
+            if (w <= m and dp[i - 1][m - w] + v > dp[i][m]) {
+                dp[i][m] = dp[i - 1][m - w] + v, ps[i][m] = 1;
+            }
+        }
+    }
+
+    vi is;
+    for (int i = n, m = maxCost; i >= 1; --i) {
+        if (ps[i][m]) {
+            is.emplace_back(i);
+            m -= costs[i];
+        }
+    }
+
+    return {dp[n][maxCost], is};
+}
+```
 ---
 
 ### 5.4 LCS – Longest Common Subsequence
@@ -530,6 +595,374 @@ namespace dplib {
         return digit_dp_rec(0, true, true, 0, s, dp);
     }
 
+}
+```
+```cpp
+/*8<
+  @Title:
+
+    Edit Distance
+
+  @Time:
+
+    $O(N*M)$
+
+  @Space:
+
+    $O(N*M)$
+>8*/
+
+#include "../Contest/template.cpp"
+
+ll edit_distance(const string &a, const string &b) {
+    int n = a.size();
+    int m = b.size();
+    vll2d dp(n + 1, vi(m + 1, 0));
+
+    const ll ADD = 1, DEL = 1, CHG = 1;
+    for (int i = 0; i <= n; ++i) {
+        dp[i][0] = i * DEL;
+    }
+    for (int i = 1; i <= m; ++i) {
+        dp[0][i] = ADD * i;
+    }
+
+    for (int i = 1; i <= n; ++i) {
+        for (int j = 1; j <= m; ++j) {
+            int add = dp[i][j - 1] + ADD;
+            int del = dp[i - 1][j] + DEL;
+            int chg = dp[i - 1][j - 1] + (a[i - 1] != b[j - 1]) * CHG;
+            dp[i][j] = min({add, del, chg});
+        }
+    }
+
+    return dp[n][m];
+}
+```
+```cpp
+/*8<
+  @Title:
+
+    Knapsack
+
+  @Description:
+
+    Finds the maximum score you can achieve,
+    given that you have $N$ items, each item has
+    a $cost$, a $point$ and a $quantity$, you can
+    spent at most $maxcost$ and buy each item the
+    maximum quantity it has.
+
+  @Time:
+
+    $O(n \cdot maxcost \cdot \log{maxqtd})$
+
+  @Memory:
+
+    $O(maxcost)$.
+
+>8*/
+
+ll knapsack(const vi &weight, const vll &value, const vi &qtd, int maxCost) {
+    vi costs;
+    vll values;
+    for (int i = 0; i < len(weight); i++) {
+        ll q = qtd[i];
+        for (ll x = 1; x <= q; q -= x, x <<= 1) {
+            costs.eb(x * weight[i]);
+            values.eb(x * value[i]);
+        }
+        if (q) {
+            costs.eb(q * weight[i]);
+            values.eb(q * value[i]);
+        }
+    }
+
+    vll dp(maxCost + 1);
+    for (int i = 0; i < len(values); i++) {
+        for (int j = maxCost; j > 0; j--) {
+            if (j >= costs[i]) dp[j] = max(dp[j], values[i] + dp[j - costs[i]]);
+        }
+    }
+    return dp[maxCost];
+}
+```
+```cpp
+/*8<
+  @Title:
+
+    Longest Increasing Subsequence
+
+
+  @Description:
+
+    Find the pair $(sz, psx)$ where $sz$ is the
+    size of the longest subsequence and $psx$ is
+    a vector where $psx_i$ tells the size of the
+    longest increase subsequence that ends at
+    position $i$. $get_idx$ just tells which
+indices could be in the longest increasing
+subsequence.
+
+    If you want the "Longest Non Decreasing Subsequence"
+    you can just change the lower\_bound to an upper\_bound
+
+  @Time:
+
+    $O(n\log{n})$
+>8*/
+
+#include "../Contest/template.cpp"
+
+template <typename T>
+pair<int, vi> lis(const vector<T> &xs, int n) {
+    vector<T> dp(n + 1, numeric_limits<T>::max());
+    dp[0] = numeric_limits<T>::min();
+
+    int sz = 0;
+    vi psx(n);
+
+    rep(i, 0, n) {
+        int pos = lower_bound(all(dp), xs[i]) - dp.begin();
+
+        sz = max(sz, pos);
+
+        dp[pos] = xs[i];
+
+        psx[i] = pos;
+    }
+
+    return {sz, psx};
+}
+
+template <typename T>
+vi get_idx(vector<T> xs) {
+    int n = xs.size();
+
+    auto [sz1, psx1] = lis(xs, n);
+
+    transform(rall(xs), xs.begin(), [](T x) { return -x; });
+
+    auto [sz2, psx2] = lis(xs, n);
+
+    vi ans;
+    rep(i, 0, n) {
+        int l = psx1[i];
+        int r = psx2[n - i - 1];
+        if (l + r - 1 == sz1) ans.eb(i);
+    }
+
+    return ans;
+}
+```
+```cpp
+/*
+@Description:  Just a regular lis, but very quick to code
+ * */
+
+multiset<int> s;
+for (int i = 0; i < n; i++) {
+    auto it = s.upper_bound(a[i]);
+    if (it != s.end()) s.erase(it);
+    s.insert(a[i]);
+}
+lis = len(s);
+```
+```cpp
+/*8<
+  @Title:
+
+    Longest Increasing Subsequence
+
+
+  @Description:
+
+    Find the pair $(sz, psx)$ where $sz$ is the
+    size of the longest subsequence and $psx$ is
+    a vector where $psx_i$ tells the size of the
+    longest increase subsequence that ends at
+    position $i$. $get_idx$ just tells which
+indices could be in the longest increasing
+subsequence.
+
+    If you want the "Longest Non Decreasing Subsequence"
+    you can just change the lower\_bound to an upper\_bound
+
+  @Time:
+
+    $O(n\log{n})$
+>8*/
+
+#include "../Contest/template.cpp"
+
+template <typename T>
+pair<int, vi> lis(const vector<T> &xs, int n) {
+    vector<T> dp(n + 1, numeric_limits<T>::max());
+    dp[0] = numeric_limits<T>::min();
+
+    int sz = 0;
+    vi psx(n);
+
+    rep(i, 0, n) {
+        int pos = lower_bound(all(dp), xs[i]) - dp.begin();
+
+        sz = max(sz, pos);
+
+        dp[pos] = xs[i];
+
+        psx[i] = pos;
+    }
+
+    return {sz, psx};
+}
+
+template <typename T>
+vi get_idx(vector<T> xs) {
+    int n = xs.size();
+
+    auto [sz1, psx1] = lis(xs, n);
+
+    transform(rall(xs), xs.begin(), [](T x) { return -x; });
+
+    auto [sz2, psx2] = lis(xs, n);
+
+    vi ans;
+    rep(i, 0, n) {
+        int l = psx1[i];
+        int r = psx2[n - i - 1];
+        if (l + r - 1 == sz1) ans.eb(i);
+    }
+
+    return ans;
+}
+```
+```cpp
+/*8<
+  @Title:
+
+    Monery sum
+
+  @Description:
+
+    Find every possible sum using the given values
+    only once.
+>8*/
+set<int> money_sum(const vi &xs) {
+    using vc = vector<char>;
+    using vvc = vector<vc>;
+    int _m = accumulate(all(xs), 0);
+    int _n = xs.size();
+    vvc _dp(_n + 1, vc(_m + 1, 0));
+    set<int> _ans;
+    _dp[0][xs[0]] = 1;
+    for (int i = 1; i < _n; ++i) {
+        for (int j = 0; j <= _m; ++j) {
+            if (j == 0 or _dp[i - 1][j]) {
+                _dp[i][j + xs[i]] = 1;
+                _dp[i][j] = 1;
+            }
+        }
+    }
+
+    for (int i = 0; i < _n; ++i)
+        for (int j = 0; j <= _m; ++j)
+            if (_dp[i][j]) _ans.insert(j);
+    return _ans;
+}
+```
+```cpp
+/*8<
+  @Title: Sum of Subsets
+  @Description:
+    Allows you to find if some mask $X$ is a
+    super mask of any of the given masks
+  @Usage:
+    Call $build$ with the $masks$ then it returns
+    a vector of bool $V$ where $V_X$ says if $X$
+    is a super mask of any of the initial maks
+
+    You can change it to count how many submasks
+    of each mask exsists, by changing the bitwise
+    or by a plus sign...
+  @Time: $O(LOG \cdot 2^{LOG})$
+  @Memory: $O(LOG^2 \cdot 2^{LOG})$
+  @Warning:
+    Remember to set $LOG$ with the highest
+    bit possible
+>8*/
+const int LOG = 20;
+vc build(const vi &masks) {
+    vc ret(1 << LOG);
+    trav(mi, masks) ret[mi] = 1;
+    rep(b, 0, LOG) {
+        rep(mask, 0, (1 << LOG)) {
+            if (mask & (1 << b)) ret[mask] |= ret[mask ^ (1 << b)];
+        }
+    }
+    return ret;
+}
+```
+```cpp
+template <typename T>
+T steinerCost(const vector<vector<T>> &adj, const vi ks,
+              T inf = numeric_limits<T>::max()) {
+    int k = len(ks), n = len(adj);
+    vector<vector<T>> dp(n, vector<T>(1 << k, inf));
+    vi inks(n);
+    trav(ki, ks) inks[ki] = 1;
+
+    trav(ki, ks) {
+        rep(j, 0, n) {
+            if (count(all(ks), j) == 0) {
+                dp[j][1 << ki] = adj[ki][j];
+            }
+        }
+    }
+    rep(mask, 2, (1 << k)) {
+        rep(i, 0, n) {
+            if (inks[i]) continue;
+            for (int mask2 = (mask - 1) & mask; mask2 >= 1;
+                 mask2 = (mask2 - 1) & mask) {
+                int mask3 = mask ^ mask2;
+                chmin(dp[i][mask], dp[i][mask2] + dp[i][mask3]);
+            }
+            rep(j, 0, n) {
+                if (inks[j]) continue;
+                chmin(dp[j][mask], dp[i][mask] + adj[i][j]);
+            }
+        }
+    }
+    T ans = inf;
+    rep(i, 0, n) chmin(ans, dp[i][(1 << k) - 1]);
+    return ans;
+}
+```
+```cpp
+/*8<
+  @Title:
+
+    Travelling Salesman Problem
+
+  @Time:
+
+    $O(N^2 \cdot 2^N )$
+
+  @Memory:
+
+    $O(N^2 \cdot 2^N)$
+>8*/
+vll2d dist;
+vll memo;
+int tsp(int i, int mask, int N) {
+    if (mask == (1 << N) - 1) return dist[i][0];
+    if (memo[i][mask] != -1) return memo[i][mask];
+    int ans = INT_MAX << 1;
+    for (int j = 0; j < N; ++j) {
+        if (mask & (1 << j)) continue;
+        auto t = tsp(j, mask | (1 << j), N) + dist[i][j];
+        ans = min(ans, t);
+    }
+    return memo[i][mask] = ans;
 }
 ```
 
